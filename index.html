@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#171717">
+<title>Mijn Werkuren</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 18px;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #f3f4f6; color: #171717;
+  }
+  h1 { margin: 0; font-size: 27px; }
+  h2 { font-size: 18px; margin: 0 0 14px; }
+  .sub { color: #737373; margin: 5px 0 20px; }
+  .card {
+    background: white; border-radius: 16px;
+    padding: 18px; margin-bottom: 15px;
+    box-shadow: 0 2px 8px #0000000a;
+  }
+  .stats {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 10px; margin-bottom: 15px;
+  }
+  .stat { background: #171717; color: white; border-radius: 14px; padding: 15px; }
+  .stat small { color: #d4d4d4; display: block; margin-bottom: 8px; }
+  .stat strong { font-size: 22px; overflow-wrap: anywhere; }
+  label { display: block; font-size: 13px; font-weight: 600; margin: 12px 0 6px; }
+  input {
+    width: 100%; padding: 12px; border: 1px solid #d4d4d4;
+    border-radius: 10px; font-size: 16px; background: white;
+  }
+  button {
+    border: 0; border-radius: 10px; padding: 12px;
+    font-size: 15px; font-weight: 600; cursor: pointer;
+  }
+  .primary { background: #f97316; color: white; width: 100%; margin-top: 16px; }
+  .secondary { background: #e5e5e5; color: #171717; }
+  .danger { background: #fee2e2; color: #991b1b; }
+  .row { display: flex; gap: 10px; }
+  .row > div { flex: 1; min-width: 0; }
+  .entry { border-top: 1px solid #e5e5e5; padding: 13px 0; }
+  .entry:first-child { border-top: 0; }
+  .entry-top { display: flex; justify-content: space-between; gap: 8px; }
+  .muted { color: #737373; font-size: 13px; margin-top: 5px; }
+  .money { font-weight: 700; margin-top: 6px; }
+  .entry button { margin-top: 9px; margin-right: 5px; font-size: 13px; padding: 8px; }
+  .total-line { display: flex; justify-content: space-between; padding: 7px 0; gap: 10px; }
+  .total-line strong { text-align: right; }
+  .note { font-size: 12px; color: #737373; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<h1>🍕 Mijn Werkuren</h1>
+<p class="sub">Uren bijhouden. Loon berekenen.</p>
+
+<div class="card">
+  <h2>Instellingen</h2>
+  <label for="wage">Uurloon bruto (€)</label>
+  <input id="wage" type="number" min="0" step="0.01" placeholder="Bijv. 15.50">
+  <p class="note">Vul je bruto uurloon in. Dit wordt automatisch opgeslagen.</p>
+</div>
+
+<div class="stats">
+  <div class="stat">
+    <small>Uren deze maand</small>
+    <strong id="monthHours">0 uur</strong>
+  </div>
+  <div class="stat">
+    <small>Bruto deze maand</small>
+    <strong id="monthPay">€ 0,00</strong>
+  </div>
+</div>
+
+<div class="card">
+  <h2 id="formTitle">Dienst toevoegen</h2>
+  <form id="shiftForm">
+    <input id="editId" type="hidden">
+
+    <label for="date">Datum</label>
+    <input id="date" type="date" required>
+
+    <div class="row">
+      <div>
+        <label for="start">Begintijd</label>
+        <input id="start" type="time" value="16:00" required>
+      </div>
+      <div>
+        <label for="end">Eindtijd</label>
+        <input id="end" type="time" value="23:00" required>
+      </div>
+    </div>
+
+    <label for="break">Pauze in minuten</label>
+    <input id="break" type="number" min="0" step="1" value="30" required>
+
+    <label for="note">Opmerking (optioneel)</label>
+    <input id="note" type="text" maxlength="100" placeholder="Bijv. sluitdienst">
+
+    <button class="primary" type="submit" id="saveBtn">Dienst opslaan</button>
+    <button class="secondary" type="button" id="cancelBtn"
+      style="display:none;width:100%;margin-top:8px">Annuleren</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2>Overzicht</h2>
+  <label for="month">Kies maand</label>
+  <input id="month" type="month">
+
+  <div style="margin-top:16px">
+    <div class="total-line"><span>Totaal gewerkte uren</span><strong id="totalHours">0 uur</strong></div>
+    <div class="total-line"><span>Geschat bruto loon</span><strong id="totalPay">€ 0,00</strong></div>
+    <div class="total-line"><span>Aantal diensten</span><strong id="count">0</strong></div>
+  </div>
+  <button class="secondary" id="exportBtn" style="width:100%;margin-top:12px">
+    Exporteer naar CSV
+  </button>
+</div>
+
+<div class="card">
+  <h2>Mijn diensten</h2>
+  <div id="entries"></div>
+</div>
+
+<p class="note">
+  Je gegevens worden lokaal in deze browser bewaard.
+  Het bruto loon is een schatting en houdt geen rekening met
+  vakantiegeld, belasting, toeslagen of inhoudingen.
+  Exporteer regelmatig een back-up.
+</p>
+
+<script>
+const $ = id => document.getElementById(id);
+const KEY = "mijnWerkuren_v1";
+const WAGE_KEY = "mijnWerkuren_loon_v1";
+
+let shifts = [];
+let storageAvailable = true;
+
+try {
+  shifts = JSON.parse(localStorage.getItem(KEY) || "[]");
+  if (!Array.isArray(shifts)) shifts = [];
+  $("wage").value = localStorage.getItem(WAGE_KEY) || "";
+} catch (e) {
+  storageAvailable = false;
+  alert("Opslag is niet beschikbaar. Je gegevens worden mogelijk niet bewaard.");
+}
+
+const now = new Date();
+const today = [
+  now.getFullYear(),
+  String(now.getMonth() + 1).padStart(2, "0"),
+  String(now.getDate()).padStart(2, "0")
+].join("-");
+
+$("date").value = today;
+$("month").value = today.slice(0, 7);
+
+function persist() {
+  try {
+    localStorage.setItem(KEY, JSON.stringify(shifts));
+    localStorage.setItem(WAGE_KEY, $("wage").value);
+    storageAvailable = true;
+  } catch (e) {
+    storageAvailable = false;
+    alert("Opslaan mislukt. Exporteer je gegevens als back-up.");
+  }
+}
+
+function wage() {
+  return Math.max(0, Number($("wage").value) || 0);
+}
+
+function euro(n) {
+  return new Intl.NumberFormat("nl-NL", {
+    style: "currency", currency: "EUR"
+  }).format(n);
+}
+
+function hours(s) {
+  const [sh, sm] = s.start.split(":").map(Number);
+  const [eh, em] = s.end.split(":").map(Number);
+  let minutes = (eh * 60 + em) - (sh * 60 + sm);
+  if (minutes <= 0) minutes += 1440;
+  minutes -= Math.max(0, Number(s.pause) || 0);
+  return Math.max(0, minutes / 60);
+}
+
+function duration(n) {
+  return n.toLocaleString("nl-NL", {
+    minimumFractionDigits: 0, maximumFractionDigits: 2
+  }) + " uur";
+}
+
+function selectedShifts() {
+  return shifts
+    .filter(s => s.date.startsWith($("month").value))
+    .sort((a, b) => b.date.localeCompare(a.date));
+}
+
+function render() {
+  const list = selectedShifts();
+  const total = list.reduce((sum, s) => sum + hours(s), 0);
+
+  $("monthHours").textContent = duration(
+    shifts.filter(s => s.date.startsWith(today.slice(0, 7)))
+      .reduce((sum, s) => sum + hours(s), 0)
+  );
+
+  $("monthPay").textContent = euro(
+    shifts.filter(s => s.date.startsWith(today.slice(0, 7)))
+      .reduce((sum, s) => sum + hours(s) * wage(), 0)
+  );
+
+  $("totalHours").textContent = duration(total);
+  $("totalPay").textContent = euro(total * wage());
+  $("count").textContent = list.length;
+
+  const root = $("entries");
+  root.replaceChildren();
+
+  if (!list.length) {
+    const empty = document.createElement("p");
+    empty.className = "muted";
+    empty.textContent = "Nog geen diensten in deze maand.";
+    root.append(empty);
+    return;
+  }
+
+  for (const s of list) {
+    const item = document.createElement("div");
+    item.className = "entry";
+
+    const top = document.createElement("div");
+    top.className = "entry-top";
+
+    const left = document.createElement("div");
+    const date = document.createElement("strong");
+    date.textContent = new Date(s.date + "T12:00:00").toLocaleDateString("nl-NL", {
+      weekday: "short", day: "numeric", month: "short", year: "numeric"
+    });
+    left.append(date);
+
+    const times = document.createElement("div");
+    times.className = "muted";
+    times.textContent = s.start + " – " + s.end +
+      " · " + (Number(s.pause) || 0) + " min pauze";
+    left.append(times);
+
+    if (s.note) {
+      const note = document.createElement("div");
+      note.className = "muted";
+      note.textContent = s.note;
+      left.append(note);
+    }
+
+    const right = document.createElement("strong");
+    right.textContent = duration(hours(s));
+
+    top.append(left, right);
+    item.append(top);
+
+    const pay = document.createElement("div");
+    pay.className = "money";
+    pay.textContent = euro(hours(s) * wage()) + " bruto";
+    item.append(pay);
+
+    const edit = document.createElement("button");
+    edit.className = "secondary";
+    edit.textContent = "Bewerken";
+    edit.addEventListener("click", () => editShift(s.id));
+
+    const del = document.createElement("button");
+    del.className = "danger";
+    del.textContent = "Verwijderen";
+    del.addEventListener("click", () => {
+      if (confirm("Deze dienst verwijderen?")) {
+        shifts = shifts.filter(x => x.id !== s.id);
+        persist();
+        render();
+      }
+    });
+
+    item.append(edit, del);
+    root.append(item);
+  }
+}
+
+$("shiftForm").addEventListener("submit", e => {
+  e.preventDefault();
+
+  const s = {
+    id: $("editId").value || (
+      Date.now().toString(36) + Math.random().toString(36).slice(2)
+    ),
+    date: $("date").value,
+    start: $("start").value,
+    end: $("end").value,
+    pause: Number($("break").value),
+    note: $("note").value.trim()
+  };
+
+  if (!s.date || !s.start || !s.end ||
+      !Number.isFinite(s.pause) || s.pause < 0 ||
+      s.pause > 1440 || hours(s) <= 0) {
+    alert("Controleer de datum, tijden en pauze.");
+    return;
+  }
+
+  const existing = shifts.findIndex(x => x.id === s.id);
+  if (existing >= 0) shifts[existing] = s;
+  else shifts.push(s);
+
+  persist();
+  resetForm();
+  render();
+});
+
+function editShift(id) {
+  const s = shifts.find(x => x.id === id);
+  if (!s) return;
+
+  $("editId").value = s.id;
+  $("date").value = s.date;
+  $("start").value = s.start;
+  $("end").value = s.end;
+  $("break").value = s.pause;
+  $("note").value = s.note || "";
+  $("formTitle").textContent = "Dienst bewerken";
+  $("saveBtn").textContent = "Wijzigingen opslaan";
+  $("cancelBtn").style.display = "block";
+  $("formTitle").scrollIntoView({ behavior: "smooth" });
+}
+
+function resetForm() {
+  $("shiftForm").reset();
+  $("editId").value = "";
+  $("date").value = today;
+  $("start").value = "16:00";
+  $("end").value = "23:00";
+  $("break").value = "30";
+  $("formTitle").textContent = "Dienst toevoegen";
+  $("saveBtn").textContent = "Dienst opslaan";
+  $("cancelBtn").style.display = "none";
+}
+
+$("cancelBtn").addEventListener("click", resetForm);
+$("wage").addEventListener("input", () => {
+  persist();
+  render();
+});
+$("month").addEventListener("change", render);
+
+$("exportBtn").addEventListener("click", () => {
+  const data = [
+    ["Datum", "Begintijd", "Eindtijd", "Pauze minuten",
+     "Gewerkte uren", "Uurloon bruto", "Bruto loon", "Opmerking"],
+    ...selectedShifts().map(s => [
+      s.date, s.start, s.end, s.pause,
+      hours(s).toFixed(2),
+      wage().toFixed(2),
+      (hours(s) * wage()).toFixed(2),
+      s.note || ""
+    ])
+  ];
+
+  const csv = "\uFEFF" + data.map(row =>
+    row.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(";")
+  ).join("\r\n");
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "werkuren-" + $("month").value + ".csv";
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+
+render();
+</script>
+</body>
+</html>
