@@ -6,50 +6,203 @@
 <meta name="theme-color" content="#171717">
 <title>Mijn Werkuren</title>
 <style>
-  * { box-sizing: border-box; }
-  body {
-    margin: 0; padding: 18px;
-    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-    background: #f3f4f6; color: #171717;
-  }
-  h1 { margin: 0; font-size: 27px; }
-  h2 { font-size: 18px; margin: 0 0 14px; }
-  .sub { color: #737373; margin: 5px 0 20px; }
-  .card {
-    background: white; border-radius: 16px;
-    padding: 18px; margin-bottom: 15px;
-    box-shadow: 0 2px 8px #0000000a;
-  }
-  .stats {
-    display: grid; grid-template-columns: 1fr 1fr;
-    gap: 10px; margin-bottom: 15px;
-  }
-  .stat { background: #171717; color: white; border-radius: 14px; padding: 15px; }
-  .stat small { color: #d4d4d4; display: block; margin-bottom: 8px; }
-  .stat strong { font-size: 22px; overflow-wrap: anywhere; }
-  label { display: block; font-size: 13px; font-weight: 600; margin: 12px 0 6px; }
-  input {
-    width: 100%; padding: 12px; border: 1px solid #d4d4d4;
-    border-radius: 10px; font-size: 16px; background: white;
-  }
-  button {
-    border: 0; border-radius: 10px; padding: 12px;
-    font-size: 15px; font-weight: 600; cursor: pointer;
-  }
-  .primary { background: #f97316; color: white; width: 100%; margin-top: 16px; }
-  .secondary { background: #e5e5e5; color: #171717; }
-  .danger { background: #fee2e2; color: #991b1b; }
-  .row { display: flex; gap: 10px; }
-  .row > div { flex: 1; min-width: 0; }
-  .entry { border-top: 1px solid #e5e5e5; padding: 13px 0; }
-  .entry:first-child { border-top: 0; }
-  .entry-top { display: flex; justify-content: space-between; gap: 8px; }
-  .muted { color: #737373; font-size: 13px; margin-top: 5px; }
-  .money { font-weight: 700; margin-top: 6px; }
-  .entry button { margin-top: 9px; margin-right: 5px; font-size: 13px; padding: 8px; }
-  .total-line { display: flex; justify-content: space-between; padding: 7px 0; gap: 10px; }
-  .total-line strong { text-align: right; }
-  .note { font-size: 12px; color: #737373; line-height: 1.5; }
+ 
+:root {
+  color-scheme: dark;
+  --bg: #101010;
+  --card: #1c1c1e;
+  --field: #292929;
+  --text: #f5f5f5;
+  --muted: #a1a1aa;
+  --border: #3a3a3c;
+  --accent: #f97316;
+  --danger-bg: #492020;
+  --danger-text: #ffb4ab;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 18px;
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+h1 {
+  margin: 0;
+  font-size: 27px;
+}
+
+h2 {
+  font-size: 18px;
+  margin: 0 0 14px;
+}
+
+.sub,
+.muted,
+.note {
+  color: var(--muted);
+}
+
+.sub {
+  margin: 5px 0 20px;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid #292929;
+  border-radius: 16px;
+  padding: 18px;
+  margin-bottom: 15px;
+  box-shadow: 0 3px 12px #00000020;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.stat {
+  background: #242424;
+  color: var(--text);
+  border: 1px solid #343434;
+  border-radius: 14px;
+  padding: 15px;
+  min-width: 0;
+}
+
+.stat small {
+  color: var(--muted);
+  display: block;
+  margin-bottom: 8px;
+}
+
+.stat strong {
+  font-size: 22px;
+  overflow-wrap: anywhere;
+}
+
+label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin: 12px 0 6px;
+}
+
+input {
+  width: 100%;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 16px;
+  background: var(--field);
+  color: var(--text);
+  accent-color: var(--accent);
+}
+
+input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+button {
+  border: 0;
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.primary {
+  background: var(--accent);
+  color: #fff;
+  width: 100%;
+  margin-top: 16px;
+}
+
+.primary:active {
+  background: #ea580c;
+}
+
+.secondary {
+  background: #363638;
+  color: var(--text);
+  border: 1px solid #48484a;
+}
+
+.danger {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+}
+
+.row {
+  display: flex;
+  gap: 10px;
+}
+
+.row > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.entry {
+  border-top: 1px solid var(--border);
+  padding: 13px 0;
+}
+
+.entry-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.muted {
+  font-size: 13px;
+  margin-top: 5px;
+}
+
+.money {
+  font-weight: 700;
+  margin-top: 6px;
+  color: #fb923c;
+}
+
+.entry button {
+  margin-top: 9px;
+  margin-right: 5px;
+  font-size: 13px;
+  padding: 8px;
+}
+
+.total-line {
+  display: flex;
+  justify-content: space-between;
+  padding: 7px 0;
+  gap: 10px;
+}
+
+.total-line strong {
+  text-align: right;
+}
+
+.note {
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+::selection {
+  background: #9a3412;
+  color: white;
+}
 </style>
 </head>
 <body>
